@@ -1,6 +1,6 @@
 {
   "name": "httpd-proxytunnel",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "slug": "httpd-proxytunnel",
   "description": "Run HTTP(S) proxytunnel addon as part of home assistant",
   "url": "https://github.com/Dennis-Q/hass-addons",
@@ -25,7 +25,7 @@
     "keyfile": "str",
     "enable_basic_auth": "bool",
     "auth_username": "str",
-    "auth_password": "str",
+    "auth_password": "password",
     "enable_limit_connect": "bool",
     "limit_allowconnect_port": "match(^\\d+([\\-\\s]{1}\\d+)*$)?",
     "limit_connect_host": "str?"
