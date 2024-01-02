@@ -1,4 +1,4 @@
-#!/usr/bin/env bashio
+#!/usr/bin/with-contenv bashio
 
 use_own_ssl_cert=$(bashio::config 'use_own_ssl_cert')
 certfile=$(bashio::config 'certfile')
@@ -9,6 +9,14 @@ auth_password=$(bashio::config 'auth_password')
 enable_limit_connect=$(bashio::config 'enable_limit_connect')
 limit_allowconnect_port=$(bashio::config 'limit_allowconnect_port')
 limit_connect_host=$(bashio::config 'limit_connect_host')
+
+if bashio::config.has_value 'init_commands'; then
+	echo "Detected custom init commands. Running them now."
+	while read -r cmd; do
+		eval "${cmd}" ||
+			bashio::exit.nok "Failed executing init command: ${cmd}"
+	done <<<"$(bashio::config 'init_commands')"
+fi
 
 
 ###################
