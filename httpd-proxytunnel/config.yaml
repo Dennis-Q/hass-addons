@@ -1,6 +1,6 @@
 ---
 name: httpd-proxytunnel
-version: 1.0.1
+version: 1.1.0
 slug: httpd-proxytunnel
 description: Run HTTP(S) proxytunnel addon as part of home assistant
 url: https://github.com/Dennis-Q/hass-addons
@@ -14,7 +14,7 @@ arch:
 startup: application
 boot: auto
 map:
-- ssl
+- ssl:rw
 options:
   use_own_ssl_cert: false
   certfile: "/ssl/httpd-proxytunnel/fullchain.pem"
