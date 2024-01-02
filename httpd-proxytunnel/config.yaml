@@ -1,0 +1,41 @@
+---
+name: httpd-proxytunnel
+version: 1.0.1
+slug: httpd-proxytunnel
+description: Run HTTP(S) proxytunnel addon as part of home assistant
+url: https://github.com/Dennis-Q/hass-addons
+init: false
+arch:
+- aarch64
+- amd64
+- armhf
+- armv7
+- i386
+startup: application
+boot: auto
+map:
+- ssl
+options:
+  use_own_ssl_cert: false
+  certfile: "/ssl/httpd-proxytunnel/fullchain.pem"
+  keyfile: "/ssl/httpd-proxytunnel/privkey.pem"
+  enable_basic_auth: true
+  auth_username: ''
+  auth_password: ''
+  enable_limit_connect: true
+  limit_allowconnect_port: '22'
+  limit_connect_host: ''
+schema:
+  use_own_ssl_cert: bool
+  certfile: str
+  keyfile: str
+  enable_basic_auth: bool
+  auth_username: str
+  auth_password: password
+  enable_limit_connect: bool
+  limit_allowconnect_port: match(^\d+([\-\s]{1}\d+)*$)?
+  limit_connect_host: str?
+ports:
+  443/tcp: 443
+ports_description:
+  443/tcp: HTTPS webserver interface
