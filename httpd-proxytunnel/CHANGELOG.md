@@ -35,7 +35,8 @@ Co-authored with [Claude Code](https://claude.com/claude-code) (Anthropic).
 - TLS settings follow the Mozilla "intermediate" profile (TLS 1.2 + 1.3,
   session tickets off); fixed the SSL session cache path; TRACE disabled.
 - `/ssl` is mounted read-only; the unused plain HTTP listener is off.
-- Base image updated to `ghcr.io/hassio-addons/base` 21.0.10 (Alpine 3.24).
+- Base image updated to `ghcr.io/hassio-addons/base` 21.0.10 (Alpine 3.24), set in
+  the Dockerfile (no `build.yaml`, which Supervisor no longer recommends).
 - Removed unused `init_commands` code.
 
 ## 1.1.0
