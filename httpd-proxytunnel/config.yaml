@@ -2,7 +2,7 @@
 name: httpd-proxytunnel
 version: 1.4.1
 slug: httpd-proxytunnel
-description: Run HTTP(S) proxytunnel addon as part of home assistant
+description: HTTPS proxy for SSH tunnels with proxytunnel, with authentication and brute-force protection
 url: https://github.com/Dennis-Q/hass-addons/tree/main/httpd-proxytunnel
 init: false
 arch:

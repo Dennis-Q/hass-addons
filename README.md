@@ -12,7 +12,9 @@ Just add my repo to the hassio addons repositorys: https://github.com/Dennis-Q/h
 ## Add-On List
 
 ### httpd-proxytunnel
-Apache2 configured for use with proxytunnel over HTTPS: https://github.com/Dennis-Q/hass-addons/tree/main/httpd-proxytunnel
+Apache HTTPS proxy for SSH tunnels with [proxytunnel](https://github.com/proxytunnel/proxytunnel): reach SSH at home from networks that only allow HTTPS. Password required, destination host/port limits, brute-force protection, TLS 1.2/1.3 only. Runs on `aarch64` and `amd64`.
+
+Source: https://github.com/Dennis-Q/hass-addons/tree/main/httpd-proxytunnel
 
 [Documentation can be found here][documentation]
 
