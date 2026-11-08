@@ -33,7 +33,7 @@ notify() {
     fi
     jq -n --arg message "${1}" \
         '{title: "httpd-proxytunnel", message: $message, notification_id: "httpd_proxytunnel_ban"}' \
-        | curl -s -m 10 -o /dev/null -X POST \
+        | curl -sf -m 10 -o /dev/null -X POST \
             -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
             -H "Content-Type: application/json" -d @- \
             http://supervisor/core/api/services/persistent_notification/create \
