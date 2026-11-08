@@ -1,0 +1,40 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  app-linter:
+    name: Home Assistant app linter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: frenck/action-app-linter@v2
+        with:
+          path: "./httpd-proxytunnel"
+
+  hadolint:
+    name: hadolint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hadolint/hadolint-action@v3.5.0
+        with:
+          dockerfile: httpd-proxytunnel/Dockerfile
+
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run shellcheck
+        working-directory: httpd-proxytunnel/rootfs
+        run: |
+          shellcheck usr/bin/proxytunnel-ban \
+            etc/s6-overlay/s6-rc.d/*/run \
+            etc/s6-overlay/s6-rc.d/httpd/finish
