@@ -1,0 +1,8 @@
+#!/command/with-contenv bashio
+# shellcheck shell=bash
+# ==============================================================================
+# httpd-proxytunnel: run Apache in the foreground
+# ==============================================================================
+
+bashio::log.info "Starting Apache2."
+exec /usr/sbin/httpd -D FOREGROUND
