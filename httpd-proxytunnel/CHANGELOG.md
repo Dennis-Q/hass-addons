@@ -6,8 +6,9 @@ Security update. Please read the breaking changes before updating.
 
 ### Breaking changes
 
-- The add-on refuses to start when `enable_basic_auth` is `false` and no
-  `limit_connect_host` is set (that was an open proxy).
+- Authentication is always required: the option `enable_basic_auth` is
+  removed. Set `auth_username` and `auth_password`, otherwise the add-on
+  does not start. Without authentication it could be an open proxy.
 - Only CONNECT (tunnel) requests are allowed by default. Set the new option
   `allow_http_proxy` to `true` to also allow plain HTTP forward proxying.
 - `limit_connect_host` now matches the host exactly, and must be an IPv4
@@ -21,8 +22,8 @@ Security update. Please read the breaking changes before updating.
 
 ### Fixes and improvements
 
-- Fixed: with `enable_basic_auth: false`, `limit_connect_host` had no effect
-  and any destination was allowed.
+- Fixed: with authentication off, `limit_connect_host` had no effect and any
+  destination was allowed.
 - Self-signed certificate is only regenerated when it has expired or does not
   match its key; its SHA-256 fingerprint is logged at every start.
 - Passwords are stored as bcrypt instead of MD5; a warning is logged when the

@@ -38,10 +38,6 @@ if bashio::config.true 'enable_limit_connect'; then
     fi
 fi
 
-if bashio::config.false 'enable_basic_auth' && [[ -z "${limit_host}" ]]; then
-    bashio::exit.nok "enable_basic_auth is disabled without limit_connect_host: that would be an open proxy. Enable authentication or limit the proxy to one host."
-fi
-
 ###################
 # SSL certificate #
 ###################
@@ -86,34 +82,22 @@ bashio::log.info "Certificate $(openssl x509 -noout -fingerprint -sha256 -in "${
 # Authentication #
 ##################
 
-auth_config=""
-require_client="Require all granted"
-
-if bashio::config.true 'enable_basic_auth'; then
-    auth_username=$(bashio::config 'auth_username')
-    if ! bashio::config.has_value 'auth_username' || ! bashio::config.has_value 'auth_password'; then
-        bashio::exit.nok "auth_username and auth_password are required when enable_basic_auth is enabled."
-    fi
-    if [[ ! "${auth_username}" =~ ${USERNAME_REGEX} ]]; then
-        bashio::exit.nok "auth_username may not contain spaces or ':'."
-    fi
-    bashio::config.suggest.safe_password 'auth_password'
-
-    printf '%s\n' "$(bashio::config 'auth_password')" \
-        | htpasswd -B -i -c "${HTPASSWD}" "${auth_username}" > /dev/null 2>&1 \
-        || bashio::exit.nok "Creating the password file failed."
-    chown root:apache "${HTPASSWD}"
-    chmod 640 "${HTPASSWD}"
-    bashio::log.info "Basic authentication enabled for user '${auth_username}'."
-
-    auth_config="AuthType Basic
-        AuthName \"Password Required\"
-        AuthBasicProvider file
-        AuthUserFile ${HTPASSWD}"
-    require_client="Require valid-user"
-else
-    bashio::log.warning "Basic authentication is disabled; anyone can connect to '${limit_host}'."
+# Always required: without it anyone on the internet can use the proxy
+auth_username=$(bashio::config 'auth_username')
+if ! bashio::config.has_value 'auth_username' || ! bashio::config.has_value 'auth_password'; then
+    bashio::exit.nok "auth_username and auth_password are required."
 fi
+if [[ ! "${auth_username}" =~ ${USERNAME_REGEX} ]]; then
+    bashio::exit.nok "auth_username may not contain spaces or ':'."
+fi
+bashio::config.suggest.safe_password 'auth_password'
+
+printf '%s\n' "$(bashio::config 'auth_password')" \
+    | htpasswd -B -i -c "${HTPASSWD}" "${auth_username}" > /dev/null 2>&1 \
+    || bashio::exit.nok "Creating the password file failed."
+chown root:apache "${HTPASSWD}"
+chmod 640 "${HTPASSWD}"
+bashio::log.info "Basic authentication enabled for user '${auth_username}'."
 
 #########
 # Proxy #
@@ -132,9 +116,12 @@ if [[ -n "${limit_ports}" ]]; then
 fi
 
 access_rules="
-        ${auth_config}
+        AuthType Basic
+        AuthName \"Password Required\"
+        AuthBasicProvider file
+        AuthUserFile ${HTPASSWD}
         <RequireAll>
-            ${require_client}
+            Require valid-user
             ${require_method}
         </RequireAll>"
 

@@ -21,7 +21,6 @@ Example add-on configuration:
 use_own_ssl_cert: false
 certfile: /ssl/httpd-proxytunnel/fullchain.pem
 keyfile: /ssl/httpd-proxytunnel/privkey.pem
-enable_basic_auth: true
 auth_username: VeryStrongUserName
 auth_password: EvenStr0ngerPassw0rd!
 enable_limit_connect: true
@@ -49,17 +48,11 @@ The private key file to use for SSL. Only used when `use_own_ssl_cert` is set to
 
 **Note**: _The file MUST be stored in `/ssl/`._
 
-### Option: `enable_basic_auth`
-Option to enable Basic HTTP Authentication (htpasswd). It is strongly advised to keep this enabled as it adds an additional layer of security.
-Options `auth_username` and `auth_password` are required when enabled. You can use the credentials using the '-P' flag of proxytunnel. 
-
-**Note**: _It is NOT recommended setting this to `false`. When it is `false`, `enable_limit_connect` must be `true` and `limit_connect_host` must be set, otherwise the add-on refuses to start (it would be an open proxy)._
-
 ### Option: `auth_username`
-The username which will be required to use the proxy. This field is only used when `enable_basic_auth` is set to `true`. It may not contain spaces or `:`.
+The username which will be required to use the proxy (Basic HTTP Authentication). Authentication is always on; use the credentials with the '-P' flag of proxytunnel. It may not contain spaces or `:`.
 
 ### Option: `auth_password`
-The password which will be required to use the proxy. This field is only used when `enable_basic_auth` is set to `true`. It is stored as a bcrypt hash. The log shows a warning when the password appears in a known data breach (Have I Been Pwned).
+The password which will be required to use the proxy. It is stored as a bcrypt hash. The log shows a warning when the password appears in a known data breach (Have I Been Pwned).
 
 ### Option: `enable_limit_connect`
 Enables/disables limiting connectivity to a specific port or host. When set to `false` this will use the default 'AllowConnect' ports (currently 443 563) and any destination host is allowed. When set to `true` the result depends on what is entered in `limit_allowconnect_port` and `limit_connect_host`.
@@ -78,7 +71,7 @@ When `false` (default) only CONNECT requests (tunnels, as used by proxytunnel) a
 
 &nbsp;
 ## Security
-This addon was built with security in mind. Multiple steps were taken to make it as safe as possible. Some examples: TLS 1.2 and 1.3 only with the Mozilla "intermediate" cipher list, only CONNECT requests by default, username/password authentication (bcrypt), exact destination host and port limits, and a refusal to start as an open proxy. The `/ssl` folder is mounted read-only. 
+This addon was built with security in mind. Multiple steps were taken to make it as safe as possible. Some examples: TLS 1.2 and 1.3 only with the Mozilla "intermediate" cipher list, only CONNECT requests by default, username/password authentication that cannot be turned off (bcrypt), exact destination host and port limits. The `/ssl` folder is mounted read-only. 
 
 In case you do have any suggestions, tips or remarks for improvement, please do contact me. :)
 

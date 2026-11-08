@@ -17,7 +17,6 @@ options:
   use_own_ssl_cert: false
   certfile: "/ssl/httpd-proxytunnel/fullchain.pem"
   keyfile: "/ssl/httpd-proxytunnel/privkey.pem"
-  enable_basic_auth: true
   auth_username: ''
   auth_password: ''
   enable_limit_connect: true
@@ -28,7 +27,6 @@ schema:
   use_own_ssl_cert: bool
   certfile: str
   keyfile: str
-  enable_basic_auth: bool
   auth_username: match(^[^:\s]*$)
   auth_password: password
   enable_limit_connect: bool
