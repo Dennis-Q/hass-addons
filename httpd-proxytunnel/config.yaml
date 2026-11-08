@@ -30,8 +30,8 @@ schema:
   auth_username: match(^[^:\s]*$)
   auth_password: password
   enable_limit_connect: bool
-  limit_allowconnect_port: match(^\d+(-\d+)?(\s+\d+(-\d+)?)*$)?
-  limit_connect_host: match(^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$)?
+  limit_allowconnect_port: match(^(\d+(-\d+)?(\s+\d+(-\d+)?)*)?$)?
+  limit_connect_host: match(^([A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?)?$)?
   allow_http_proxy: bool
 ports:
   443/tcp: 443
