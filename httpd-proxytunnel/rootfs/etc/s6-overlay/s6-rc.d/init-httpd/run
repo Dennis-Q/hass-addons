@@ -157,6 +157,9 @@ if bashio::config.true 'ban_enabled'; then
 
     mkdir -p "${BAN_DIR}"
     chmod 755 "${BAN_DIR}"
+    # Fail closed: without a working watcher, failed logins would not be counted
+    /usr/bin/proxytunnel-ban 1 1 1 false < /dev/null \
+        || bashio::exit.nok "The brute-force protection (proxytunnel-ban) cannot run."
     require_not_banned="Require expr \"! -f '${BAN_DIR}/%{REMOTE_ADDR}'\""
     ban_log="CustomLog \"|/usr/bin/proxytunnel-ban ${ban_max_failures} ${ban_find_minutes} ${ban_minutes} ${ban_notify}\" \"%a %u %>s\""
     bashio::log.info "Brute-force protection: ban an IP for ${ban_minutes} min after ${ban_max_failures} failed logins within ${ban_find_minutes} min."
