@@ -27,7 +27,7 @@ Please keep in mind, that this software is only tested on x86-64 running on a vi
 
 ## Credits
 
-The httpd-proxytunnel 1.2.0 and 1.3.0 updates were co-authored with [Claude Code](https://claude.com/claude-code) (Anthropic).
+The httpd-proxytunnel updates since 1.2.0 were co-authored with [Claude Code](https://claude.com/claude-code) (Anthropic).
 
 ## License
 

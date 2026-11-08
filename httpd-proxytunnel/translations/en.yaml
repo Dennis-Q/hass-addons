@@ -45,5 +45,24 @@ configuration:
     description: >-
       Also act as a plain HTTP forward proxy. Off: only CONNECT tunnels (what
       proxytunnel uses).
+  ban_enabled:
+    name: Brute-force protection
+    description: >-
+      Ban an IP address after too many failed logins. Banned addresses get
+      "403 Forbidden" without a password check.
+  ban_max_failures:
+    name: Failed logins before a ban
+    description: Number of failed logins (wrong password or unknown user).
+  ban_find_minutes:
+    name: Counting window (minutes)
+    description: Failed logins count only within this many minutes.
+  ban_minutes:
+    name: Ban duration (minutes)
+    description: >-
+      How long a banned IP address is refused. Bans are cleared when the
+      add-on restarts.
+  ban_notify:
+    name: Notify Home Assistant
+    description: Show a persistent notification in Home Assistant for each ban.
 network:
   443/tcp: HTTPS port for proxytunnel connections

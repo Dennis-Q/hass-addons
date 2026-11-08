@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.0
+
+Co-authored with [Claude Code](https://claude.com/claude-code) (Anthropic).
+
+- Brute-force protection (on by default): an IP address with 5 failed logins
+  within 10 minutes is banned for 60 minutes. Banned addresses get
+  "403 Forbidden" without a password check; open tunnels stay open. New
+  options `ban_enabled`, `ban_max_failures`, `ban_find_minutes`,
+  `ban_minutes` and `ban_notify` (persistent notification in Home Assistant,
+  off by default; the add-on now has access to the Home Assistant API for this).
+- DOCS: advice on limiting access to port 443 in your router.
+
 ## 1.3.1
 
 Co-authored with [Claude Code](https://claude.com/claude-code) (Anthropic).
