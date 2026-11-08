@@ -1,0 +1,49 @@
+---
+configuration:
+  use_own_ssl_cert:
+    name: Use own SSL certificate
+    description: >-
+      Use the certificate and key below (stored in /ssl). When off, the add-on
+      creates a self-signed certificate and keeps it until it expires.
+  certfile:
+    name: Certificate file
+    description: >-
+      Certificate (full chain) in /ssl, e.g. /ssl/httpd-proxytunnel/fullchain.pem.
+      Only used with "Use own SSL certificate".
+  keyfile:
+    name: Private key file
+    description: >-
+      Private key in /ssl, e.g. /ssl/httpd-proxytunnel/privkey.pem. Only used
+      with "Use own SSL certificate".
+  auth_username:
+    name: Username
+    description: >-
+      Required. Username for the proxy (proxytunnel -P user:password). No
+      spaces or ':'.
+  auth_password:
+    name: Password
+    description: >-
+      Required. Use a long, unique password: the proxy is reachable from the
+      internet.
+  enable_limit_connect:
+    name: Limit destinations
+    description: >-
+      Limit tunnels to the port(s) and host below. When off, any host on the
+      default ports 443 and 563 is allowed.
+  limit_allowconnect_port:
+    name: Allowed port(s)
+    description: >-
+      Port(s) tunnels may connect to, e.g. "22" or "22 2200-2210". Use 22 for
+      SSH.
+  limit_connect_host:
+    name: Allowed host
+    description: >-
+      Only allow tunnels to this IPv4 address or host name (exact match).
+      Empty allows any host.
+  allow_http_proxy:
+    name: Allow plain HTTP proxy
+    description: >-
+      Also act as a plain HTTP forward proxy. Off: only CONNECT tunnels (what
+      proxytunnel uses).
+network:
+  443/tcp: HTTPS port for proxytunnel connections

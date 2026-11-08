@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.3.0
+
+Co-authored with [Claude Code](https://claude.com/claude-code) (Anthropic).
+
+- AppArmor profile: the add-on now runs with its own restrictive profile
+  (only the capabilities, network access and files it needs; `/ssl`
+  read-only). Security rating 5 → 6.
+- Watchdog: Supervisor can restart the add-on when port 443 stops answering.
+  Turn on "Watchdog" on the add-on page to use it.
+- Option names and descriptions in the UI (translations).
+- s6-overlay services instead of a single start script: `init-httpd` prepares
+  certificate, password and configuration, `httpd` runs Apache. A
+  configuration error stops the add-on with a clear message in the log.
+- Apache's own error log now also goes to the add-on log (it went to a file
+  inside the container). Failed logins are visible there.
+
 ## 1.2.0
 
 Security update. Please read the breaking changes before updating.

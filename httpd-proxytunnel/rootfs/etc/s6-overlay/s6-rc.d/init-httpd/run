@@ -1,8 +1,8 @@
 #!/command/with-contenv bashio
 # shellcheck shell=bash
 # ==============================================================================
-# httpd-proxytunnel: validate the options, prepare certificate and credentials,
-# generate the virtual host and start Apache in the foreground.
+# httpd-proxytunnel: validate the options, prepare certificate and credentials
+# and generate the virtual host. Runs once before the httpd service starts.
 # ==============================================================================
 
 readonly VHOST_CONF="/etc/apache2/conf.d/20-proxy-vhost.conf"
@@ -172,6 +172,3 @@ httpd -t > /dev/null 2>&1 || {
     httpd -t
     bashio::exit.nok "The generated Apache configuration is invalid."
 }
-
-bashio::log.info "Starting Apache2."
-exec /usr/sbin/httpd -D FOREGROUND
