@@ -73,6 +73,8 @@ When `false` (default) only CONNECT requests (tunnels, as used by proxytunnel) a
 ## Security
 This addon was built with security in mind. Multiple steps were taken to make it as safe as possible. Some examples: TLS 1.2 and 1.3 only with the Mozilla "intermediate" cipher list, only CONNECT requests by default, username/password authentication that cannot be turned off (bcrypt), exact destination host and port limits. The `/ssl` folder is mounted read-only. 
 
+The add-on runs with its own AppArmor profile, and failed logins appear in the add-on log. Turn on **Watchdog** on the add-on page to have Supervisor restart it when port 443 stops answering.
+
 In case you do have any suggestions, tips or remarks for improvement, please do contact me. :)
 
 &nbsp;
