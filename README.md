@@ -12,7 +12,7 @@ Just add my repo to the hassio addons repositorys: https://github.com/Dennis-Q/h
 ## Add-On List
 
 ### httpd-proxytunnel
-Apache2 configured for use with proxytunnel over HTTPS: https://github.com/Dennis-Q/hass-addons/tree/master/httpd-proxytunnel
+Apache2 configured for use with proxytunnel over HTTPS: https://github.com/Dennis-Q/hass-addons/tree/main/httpd-proxytunnel
 
 [Documentation can be found here][documentation]
 
@@ -24,6 +24,10 @@ Got questions?
 
 You can [open an issue here][issue] GitHub. <br /> 
 Please keep in mind, that this software is only tested on x86-64 running on a virtualized Home Assistant installation (previously known as hass.io).
+
+## Credits
+
+The httpd-proxytunnel 1.2.0 security update was co-authored with [Claude Code](https://claude.com/claude-code) (Anthropic).
 
 ## License
 

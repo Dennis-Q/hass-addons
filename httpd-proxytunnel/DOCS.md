@@ -21,20 +21,22 @@ Example add-on configuration:
 use_own_ssl_cert: false
 certfile: /ssl/httpd-proxytunnel/fullchain.pem
 keyfile: /ssl/httpd-proxytunnel/privkey.pem
-enable_basic_auth: true
 auth_username: VeryStrongUserName
 auth_password: EvenStr0ngerPassw0rd!
 enable_limit_connect: true
 limit_allowconnect_port: 22
 limit_connect_host: 192.168.1.100
+allow_http_proxy: false
 ```
 
 **Note**: _This is just an example, don't copy and past it! Create your own!_ 
 
 ### Option: `use_own_ssl_cert`
-Enables/disables the use of your own SSL-certificate. When set to `true`, it will use the provided SSL-certificates set in `certfile` and `keyfile`. If set to `false` it will create new (self-signed) SSL-certificates at the start of the addon.
+Enables/disables the use of your own SSL-certificate. When set to `true`, it will use the provided SSL-certificates set in `certfile` and `keyfile`. If set to `false` the add-on creates a self-signed certificate (valid for 10 years) in its own data folder. It keeps using that certificate across restarts and only creates a new one when it has expired or does not match its key.
 
-**Note:** _The latest versions of the 'proxytunnel' require the '-z' or '--no-check-certificate' option to prevent a certificate verification error._
+The add-on log shows the SHA-256 fingerprint of the certificate at every start. Write it down: if it changes while you did not expect a new certificate, something is wrong.
+
+**Note:** _With a self-signed certificate, 'proxytunnel' needs the '-z' or '--no-check-certificate' option. That skips the certificate check, so compare the fingerprint when in doubt._
 
 ### Option: `certfile`
 The certificate file to use for SSL. Only used when `use_own_ssl_cert` is set to `true`.
@@ -46,17 +48,11 @@ The private key file to use for SSL. Only used when `use_own_ssl_cert` is set to
 
 **Note**: _The file MUST be stored in `/ssl/`._
 
-### Option: `enable_basic_auth`
-Option to enable Basic HTTP Authentication (htpasswd). It is strongly advised to keep this enabled as it adds an additional layer of security.
-Options `auth_username` and `auth_password` are required when enabled. You can use the credentials using the '-P' flag of proxytunnel. 
-
-**Note**: _It is NOT recommended setting this to `false`._
-
 ### Option: `auth_username`
-The username which will be required to use the proxy. This field is only used when `enabled_basic_auth` is set to `true`.
+The username which will be required to use the proxy (Basic HTTP Authentication). Authentication is always on; use the credentials with the '-P' flag of proxytunnel. It may not contain spaces or `:`.
 
 ### Option: `auth_password`
-The password which will be required to use the proxy. This field is only used when `enabled_basic_auth` is set to `true`.
+The password which will be required to use the proxy. It is stored as a bcrypt hash. The log shows a warning when the password appears in a known data breach (Have I Been Pwned).
 
 ### Option: `enable_limit_connect`
 Enables/disables limiting connectivity to a specific port or host. When set to `false` this will use the default 'AllowConnect' ports (currently 443 563) and any destination host is allowed. When set to `true` the result depends on what is entered in `limit_allowconnect_port` and `limit_connect_host`.
@@ -68,11 +64,14 @@ The AllowCONNECT port entered here is the one put into the httpd-configuration f
 **Note**: _If you want to connect to a host using SSH/proxytunnel, it is required to enter `22` here (which is the default SSH port)._
 
 ### Option: `limit_connect_host`
-This option can limit the host you would like to be able to connect to. Currently it is using the '<Proxy [VALUE]>' option to limit it. You can enter an IP-address here. If the value is empty, it will allow to connect to any destination.
+This option limits the proxy to one destination host. Enter an IPv4 address or a host name; it must match exactly (`192.168.1.10` does not allow `192.168.1.100`). Clients must use the same form: if you enter an IP address, connect to the IP address, not to a name that points to it. If the value is empty, any destination is allowed.
+
+### Option: `allow_http_proxy`
+When `false` (default) only CONNECT requests (tunnels, as used by proxytunnel) are allowed. When `true` the add-on also works as a plain HTTP forward proxy for the same users and destinations. Leave it `false` unless you need it.
 
 &nbsp;
 ## Security
-This addon was built with security in mind. Multiple steps were taken to make it as safe as possible. Some examples: limiting the CipherSuits to 'HIGH', limiting SSL protocols to only TLSv1.2 and TLSv1.3. Other functionality that was implemented to improve security are the option to enable username/password authentication, as well as limiting the destination port and host. 
+This addon was built with security in mind. Multiple steps were taken to make it as safe as possible. Some examples: TLS 1.2 and 1.3 only with the Mozilla "intermediate" cipher list, only CONNECT requests by default, username/password authentication that cannot be turned off (bcrypt), exact destination host and port limits. The `/ssl` folder is mounted read-only. 
 
 In case you do have any suggestions, tips or remarks for improvement, please do contact me. :)
 
@@ -91,7 +90,7 @@ Using proxytunnel is easy, what you can do is add the following into your `~/.ss
 ```
 Host foobar
 	ProtocolKeepAlives 30
-	ProxyCommand proxytunnel -z -E -p myproxy.athome.nl:443 -P username:password -d mybox.athome.nl:443
+	ProxyCommand proxytunnel -z -E -p myproxy.athome.nl:443 -P username:password -d mybox.athome.nl:22
 
 ```
 
@@ -104,7 +103,7 @@ Please ensure to enable port-forwarding to your home assistant installation to t
 
 &nbsp;
 ## Changelog & Releases
-v1.0.0 - Initial Release
+See [CHANGELOG.md](CHANGELOG.md).
 
 
 &nbsp;
