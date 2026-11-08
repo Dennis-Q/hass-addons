@@ -1,12 +1,13 @@
 #include <tunables/global>
 
-profile httpd-proxytunnel flags=(attach_disconnected,mediate_deleted,complain) {
+profile httpd-proxytunnel flags=(attach_disconnected,mediate_deleted) {
   #include <abstractions/base>
 
   # Capabilities: Apache binds 443 as root, then drops to the apache user
   capability chown,
   capability dac_override,
   capability fowner,
+  capability fsetid,
   capability kill,
   capability net_bind_service,
   capability setgid,
@@ -22,12 +23,12 @@ profile httpd-proxytunnel flags=(attach_disconnected,mediate_deleted,complain) {
   network inet6 dgram,
 
   # S6-Overlay
-  /init ix,
+  /init rix,
   /bin/** ix,
   /usr/bin/** ix,
   /usr/sbin/** ix,
   /run/{s6,s6-rc*,service}/** ix,
-  /package/** ix,
+  /package/** rix,
   /command/** ix,
   /etc/s6-overlay/** rix,
   /run/{,**} rwk,
