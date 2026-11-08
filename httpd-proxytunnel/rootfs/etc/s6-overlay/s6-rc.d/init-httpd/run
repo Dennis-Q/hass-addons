@@ -151,9 +151,12 @@ if bashio::config.true 'ban_enabled'; then
     ban_minutes=$(bashio::config 'ban_minutes')
     ban_notify=false
     bashio::config.true 'ban_notify' && ban_notify=true
-    for value in "${ban_max_failures}" "${ban_find_minutes}" "${ban_minutes}"; do
+    for value in "${ban_max_failures}" "${ban_find_minutes}"; do
         [[ "${value}" =~ ^[1-9][0-9]*$ ]] || bashio::exit.nok "Brute-force protection settings must be positive numbers."
     done
+    [[ "${ban_minutes}" =~ ^[0-9]+$ ]] || bashio::exit.nok "ban_minutes must be 0 (until restart) or a positive number."
+    ban_duration="for ${ban_minutes} min"
+    (( ban_minutes == 0 )) && ban_duration="until the add-on restarts"
 
     mkdir -p "${BAN_DIR}"
     chmod 755 "${BAN_DIR}"
@@ -162,7 +165,7 @@ if bashio::config.true 'ban_enabled'; then
         || bashio::exit.nok "The brute-force protection (proxytunnel-ban) cannot run."
     require_not_banned="Require expr \"! -f '${BAN_DIR}/%{REMOTE_ADDR}'\""
     ban_log="CustomLog \"|/usr/bin/proxytunnel-ban ${ban_max_failures} ${ban_find_minutes} ${ban_minutes} ${ban_notify}\" \"%a %u %>s\""
-    bashio::log.info "Brute-force protection: ban an IP for ${ban_minutes} min after ${ban_max_failures} failed logins within ${ban_find_minutes} min."
+    bashio::log.info "Brute-force protection: ban an IP ${ban_duration} after ${ban_max_failures} failed logins within ${ban_find_minutes} min."
 else
     bashio::log.warning "Brute-force protection is disabled."
 fi

@@ -5,15 +5,16 @@
 # (CustomLog "|..."). A 407 with a user name is a failed login (wrong password
 # or unknown user); a 407 without one is a client that has not sent
 # credentials yet and does not count.
-# After <max failures> within <find minutes>, the IP is banned for <ban minutes>:
-# the file /run/apache2/bans/<ip> holds the expiry time, and Apache refuses
-# requests from IPs that have such a file.
+# After <max failures> within <find minutes>, the IP is banned for <ban minutes>
+# (0 = until the add-on restarts): the file /run/apache2/bans/<ip> holds the
+# expiry time (0 = none), and Apache refuses requests from IPs that have such
+# a file.
 # Usage: proxytunnel-ban <max failures> <find minutes> <ban minutes> <notify true|false>
 # ==============================================================================
 
 readonly MAX_FAILURES="${1:-5}"
 readonly FIND_SECONDS=$(( ${2:-10} * 60 ))
-readonly BAN_SECONDS=$(( ${3:-60} * 60 ))
+readonly BAN_SECONDS=$(( ${3:-0} * 60 ))
 readonly NOTIFY="${4:-false}"
 readonly BAN_DIR="/run/apache2/bans"
 readonly IP_REGEX='^[0-9A-Fa-f:.]+$'
@@ -46,6 +47,7 @@ cleanup() {
     for file in "${BAN_DIR}"/*; do
         [[ -f "${file}" ]] || continue
         expiry=$(< "${file}")
+        [[ "${expiry}" == "0" ]] && continue   # until restart
         if [[ ! "${expiry}" =~ ^[0-9]+$ ]] || (( expiry <= now )); then
             rm -f "${file}"
             log INFO "Ban of ${file##*/} expired."
@@ -76,9 +78,15 @@ while true; do
             last_cleanup="${now}"
             count=$(wc -w <<< "${failures[${ip}]:-}")
             if (( count >= MAX_FAILURES )); then
-                echo $(( now + BAN_SECONDS )) > "${BAN_DIR}/${ip}"
+                if (( BAN_SECONDS == 0 )); then
+                    echo 0 > "${BAN_DIR}/${ip}"
+                    duration="until the add-on restarts"
+                else
+                    echo $(( now + BAN_SECONDS )) > "${BAN_DIR}/${ip}"
+                    duration="for $(( BAN_SECONDS / 60 )) min"
+                fi
                 unset "failures[${ip}]"
-                message="Banned ${ip} for $(( BAN_SECONDS / 60 )) min after ${count} failed logins."
+                message="Banned ${ip} ${duration} after ${count} failed logins."
                 log WARNING "${message}"
                 notify "${message}"
             fi
