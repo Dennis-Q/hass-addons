@@ -17,6 +17,11 @@ RUN apk add --no-cache \
 # s6-overlay services (init-httpd, httpd) and the Apache configuration
 COPY rootfs /
 
+# Healthy when Apache answers over TLS on 443 (403 for a direct request is fine);
+# with "Watchdog" on, Supervisor restarts the add-on when it becomes unhealthy
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl --silent --insecure --output /dev/null --max-time 5 https://127.0.0.1/ || exit 1
+
 # Build arguments
 ARG BUILD_ARCH
 ARG BUILD_DATE

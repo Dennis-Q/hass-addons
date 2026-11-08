@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.2
+
+Co-authored with [Claude Code](https://claude.com/claude-code) (Anthropic).
+
+- Health check: a Docker `HEALTHCHECK` (Apache answers over TLS on port 443)
+  replaces the obsolete `watchdog` setting. With "Watchdog" on, Supervisor
+  restarts the add-on when it becomes unhealthy.
+- Removed `startup` and `boot` from `config.yaml` (they were the default
+  values).
+- Clearer add-on description.
+
 ## 1.4.1
 
 Co-authored with [Claude Code](https://claude.com/claude-code) (Anthropic).
