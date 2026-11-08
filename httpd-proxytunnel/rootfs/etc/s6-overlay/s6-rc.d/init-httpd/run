@@ -9,6 +9,7 @@ readonly VHOST_CONF="/etc/apache2/conf.d/20-proxy-vhost.conf"
 readonly HTPASSWD="/etc/apache2/.htpasswd"
 readonly SELF_SIGNED_DIR="/data/ssl"
 readonly SELF_SIGNED_NAME="homeassistant.local"
+readonly BAN_DIR="/run/apache2/bans"
 
 readonly PORTS_REGEX='^[0-9]+(-[0-9]+)?([[:space:]]+[0-9]+(-[0-9]+)?)*$'
 readonly HOST_REGEX='^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$'
@@ -135,12 +136,44 @@ if [[ -n "${limit_ports}" ]]; then
     bashio::log.info "CONNECT limited to port(s) '${limit_ports}'."
 fi
 
+##########################
+# Brute-force protection #
+##########################
+
+# proxytunnel-ban reads failed logins from a piped access log and creates
+# ${BAN_DIR}/<ip> for banned clients; Apache refuses those before the password
+# check, so a banned client cannot keep guessing.
+require_not_banned=""
+ban_log=""
+if bashio::config.true 'ban_enabled'; then
+    ban_max_failures=$(bashio::config 'ban_max_failures')
+    ban_find_minutes=$(bashio::config 'ban_find_minutes')
+    ban_minutes=$(bashio::config 'ban_minutes')
+    ban_notify=false
+    bashio::config.true 'ban_notify' && ban_notify=true
+    for value in "${ban_max_failures}" "${ban_find_minutes}" "${ban_minutes}"; do
+        [[ "${value}" =~ ^[1-9][0-9]*$ ]] || bashio::exit.nok "Brute-force protection settings must be positive numbers."
+    done
+
+    mkdir -p "${BAN_DIR}"
+    chmod 755 "${BAN_DIR}"
+    # Fail closed: without a working watcher, failed logins would not be counted
+    /usr/bin/proxytunnel-ban 1 1 1 false < /dev/null \
+        || bashio::exit.nok "The brute-force protection (proxytunnel-ban) cannot run."
+    require_not_banned="Require expr \"! -f '${BAN_DIR}/%{REMOTE_ADDR}'\""
+    ban_log="CustomLog \"|/usr/bin/proxytunnel-ban ${ban_max_failures} ${ban_find_minutes} ${ban_minutes} ${ban_notify}\" \"%a %u %>s\""
+    bashio::log.info "Brute-force protection: ban an IP for ${ban_minutes} min after ${ban_max_failures} failed logins within ${ban_find_minutes} min."
+else
+    bashio::log.warning "Brute-force protection is disabled."
+fi
+
 access_rules="
         AuthType Basic
         AuthName \"Password Required\"
         AuthBasicProvider file
         AuthUserFile ${HTPASSWD}
         <RequireAll>
+            ${require_not_banned}
             Require valid-user
             ${require_method}
         </RequireAll>"
@@ -169,6 +202,7 @@ cat > "${VHOST_CONF}" << EOF
 
     ErrorLog /proc/self/fd/2
     CustomLog /proc/self/fd/1 "%t %h %u %{SSL_PROTOCOL}x \"%r\" %>s %b"
+    ${ban_log}
 
     SSLEngine on
     SSLCertificateFile "${certfile}"

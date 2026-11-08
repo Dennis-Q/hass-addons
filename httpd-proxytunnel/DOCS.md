@@ -27,6 +27,11 @@ enable_limit_connect: true
 limit_allowconnect_port: 22
 limit_connect_host: 192.168.1.100
 allow_http_proxy: false
+ban_enabled: true
+ban_max_failures: 5
+ban_find_minutes: 10
+ban_minutes: 60
+ban_notify: false
 ```
 
 **Note**: _This is just an example, don't copy and past it! Create your own!_ 
@@ -69,11 +74,32 @@ This option limits the proxy to one destination host. Enter an IPv4 address or a
 ### Option: `allow_http_proxy`
 When `false` (default) only CONNECT requests (tunnels, as used by proxytunnel) are allowed. When `true` the add-on also works as a plain HTTP forward proxy for the same users and destinations. Leave it `false` unless you need it.
 
+### Option: `ban_enabled`
+Brute-force protection (default `true`). An IP address that has `ban_max_failures` failed logins (wrong password or unknown user) within `ban_find_minutes` minutes is banned for `ban_minutes` minutes. A banned address gets "403 Forbidden" without a password check, so it cannot keep guessing; tunnels that are already open stay open. Requests without credentials do not count. Bans are cleared when the add-on restarts.
+
+**Note**: _If you lock yourself out, wait until the ban expires or restart the add-on._
+
+### Option: `ban_max_failures`
+Failed logins before a ban (1–100, default 5).
+
+### Option: `ban_find_minutes`
+Failed logins only count within this many minutes (1–1440, default 10).
+
+### Option: `ban_minutes`
+Ban duration in minutes (1–10080, default 60).
+
+### Option: `ban_notify`
+When `true`, every ban also shows a persistent notification in Home Assistant. Bans always appear in the add-on log.
+
 &nbsp;
 ## Security
 This addon was built with security in mind. Multiple steps were taken to make it as safe as possible. Some examples: TLS 1.2 and 1.3 only with the Mozilla "intermediate" cipher list, only CONNECT requests by default, username/password authentication that cannot be turned off (bcrypt), exact destination host and port limits. The `/ssl` folder is mounted read-only. 
 
-The add-on runs with its own AppArmor profile, and failed logins appear in the add-on log. Turn on **Watchdog** on the add-on page to have Supervisor restart it when port 443 stops answering.
+The add-on runs with its own AppArmor profile, bans IP addresses after repeated failed logins, and failed logins and bans appear in the add-on log. Turn on **Watchdog** on the add-on page to have Supervisor restart it when port 443 stops answering.
+
+Because the add-on is reachable from the internet, consider also limiting who can reach port 443 in your router: for example only your own country (geo-IP filter), or only the networks you connect from. A VPN to your home network is an alternative to this add-on altogether.
+
+The brute-force protection works per client IP address. Check in the add-on log that connections from outside show the real client address; if they all show the same address (for example your router), a ban would block everyone.
 
 In case you do have any suggestions, tips or remarks for improvement, please do contact me. :)
 

@@ -1,0 +1,95 @@
+#!/bin/bash
+# ==============================================================================
+# httpd-proxytunnel: brute-force protection.
+# Apache pipes "<client ip> <user> <status>" for every request to this script
+# (CustomLog "|..."). A 407 with a user name is a failed login (wrong password
+# or unknown user); a 407 without one is a client that has not sent
+# credentials yet and does not count.
+# After <max failures> within <find minutes>, the IP is banned for <ban minutes>:
+# the file /run/apache2/bans/<ip> holds the expiry time, and Apache refuses
+# requests from IPs that have such a file.
+# Usage: proxytunnel-ban <max failures> <find minutes> <ban minutes> <notify true|false>
+# ==============================================================================
+
+readonly MAX_FAILURES="${1:-5}"
+readonly FIND_SECONDS=$(( ${2:-10} * 60 ))
+readonly BAN_SECONDS=$(( ${3:-60} * 60 ))
+readonly NOTIFY="${4:-false}"
+readonly BAN_DIR="/run/apache2/bans"
+readonly IP_REGEX='^[0-9A-Fa-f:.]+$'
+
+declare -A failures   # ip -> failure times (epoch seconds), space separated
+
+# Same format as the bashio lines in the add-on log
+log() {
+    echo "[$(date +%H:%M:%S)] ${1}: ${2}" >&2
+}
+
+notify() {
+    [[ "${NOTIFY}" == "true" ]] || return 0
+    if [[ -z "${SUPERVISOR_TOKEN}" ]]; then
+        log WARNING "No Supervisor token, cannot send the notification."
+        return 0
+    fi
+    jq -n --arg message "${1}" \
+        '{title: "httpd-proxytunnel", message: $message, notification_id: "httpd_proxytunnel_ban"}' \
+        | curl -sf -m 10 -o /dev/null -X POST \
+            -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
+            -H "Content-Type: application/json" -d @- \
+            http://supervisor/core/api/services/persistent_notification/create \
+        || log WARNING "Sending the notification to Home Assistant failed."
+}
+
+# Remove expired bans and forget failures older than the find window
+cleanup() {
+    local now="${1}" file expiry ip time kept
+    for file in "${BAN_DIR}"/*; do
+        [[ -f "${file}" ]] || continue
+        expiry=$(< "${file}")
+        if [[ ! "${expiry}" =~ ^[0-9]+$ ]] || (( expiry <= now )); then
+            rm -f "${file}"
+            log INFO "Ban of ${file##*/} expired."
+        fi
+    done
+    for ip in "${!failures[@]}"; do
+        kept=""
+        for time in ${failures[${ip}]}; do
+            (( now - time < FIND_SECONDS )) && kept+="${time} "
+        done
+        if [[ -n "${kept}" ]]; then
+            failures[${ip}]="${kept}"
+        else
+            unset "failures[${ip}]"
+        fi
+    done
+}
+
+mkdir -p "${BAN_DIR}"
+last_cleanup=0
+
+while true; do
+    if read -r -t 60 ip user status; then
+        now=$(date +%s)
+        if [[ "${status}" == "407" && "${user}" != "-" && "${ip}" =~ ${IP_REGEX} ]]; then
+            failures[${ip}]+="${now} "
+            cleanup "${now}"
+            last_cleanup="${now}"
+            count=$(wc -w <<< "${failures[${ip}]:-}")
+            if (( count >= MAX_FAILURES )); then
+                echo $(( now + BAN_SECONDS )) > "${BAN_DIR}/${ip}"
+                unset "failures[${ip}]"
+                message="Banned ${ip} for $(( BAN_SECONDS / 60 )) min after ${count} failed logins."
+                log WARNING "${message}"
+                notify "${message}"
+            fi
+        fi
+    elif (( $? <= 128 )); then
+        # End of input: Apache stopped or closed the log
+        exit 0
+    fi
+    now=$(date +%s)
+    if (( now - last_cleanup >= 60 )); then
+        cleanup "${now}"
+        last_cleanup="${now}"
+    fi
+done
