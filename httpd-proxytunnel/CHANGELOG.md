@@ -9,6 +9,7 @@ Co-authored with [Claude Code](https://claude.com/claude-code) (Anthropic).
   restarts the add-on when it becomes unhealthy.
 - Removed `startup` and `boot` from `config.yaml` (they were the default
   values).
+- Health check requests (from 127.0.0.1 inside the container) are not logged.
 - Clearer add-on description.
 
 ## 1.4.1

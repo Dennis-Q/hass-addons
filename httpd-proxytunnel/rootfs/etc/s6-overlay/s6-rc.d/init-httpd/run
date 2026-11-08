@@ -204,7 +204,11 @@ cat > "${VHOST_CONF}" << EOF
     ServerName ${server_name}:443
 
     ErrorLog /proc/self/fd/2
-    CustomLog /proc/self/fd/1 "%t %h %u %{SSL_PROTOCOL}x \"%r\" %>s %b"
+    # Requests from 127.0.0.1 are the Docker health check: not logged
+    CustomLog /proc/self/fd/1 "%t %h %u %{SSL_PROTOCOL}x \"%r\" %>s %b" "expr=%{REMOTE_ADDR} != '127.0.0.1'"
+    <If "%{REMOTE_ADDR} == '127.0.0.1'">
+        LogLevel crit
+    </If>
     ${ban_log}
 
     SSLEngine on
