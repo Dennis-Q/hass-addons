@@ -25,6 +25,10 @@ Got questions?
 You can [open an issue here][issue] GitHub. <br /> 
 Please keep in mind, that this software is only tested on x86-64 running on a virtualized Home Assistant installation (previously known as hass.io).
 
+## Credits
+
+The httpd-proxytunnel 1.2.0 security update was co-authored with [Claude Code](https://claude.com/claude-code) (Anthropic).
+
 ## License
 
 MIT License

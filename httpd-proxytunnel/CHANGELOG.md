@@ -4,6 +4,8 @@
 
 Security update. Please read the breaking changes before updating.
 
+Co-authored with [Claude Code](https://claude.com/claude-code) (Anthropic).
+
 ### Breaking changes
 
 - Authentication is always required: the option `enable_basic_auth` is
