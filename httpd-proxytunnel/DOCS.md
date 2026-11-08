@@ -30,7 +30,7 @@ allow_http_proxy: false
 ban_enabled: true
 ban_max_failures: 5
 ban_find_minutes: 10
-ban_minutes: 60
+ban_minutes: 0
 ban_notify: false
 ```
 
@@ -75,9 +75,9 @@ This option limits the proxy to one destination host. Enter an IPv4 address or a
 When `false` (default) only CONNECT requests (tunnels, as used by proxytunnel) are allowed. When `true` the add-on also works as a plain HTTP forward proxy for the same users and destinations. Leave it `false` unless you need it.
 
 ### Option: `ban_enabled`
-Brute-force protection (default `true`). An IP address that has `ban_max_failures` failed logins (wrong password or unknown user) within `ban_find_minutes` minutes is banned for `ban_minutes` minutes. A banned address gets "403 Forbidden" without a password check, so it cannot keep guessing; tunnels that are already open stay open. Requests without credentials do not count. Bans are cleared when the add-on restarts.
+Brute-force protection (default `true`). An IP address that has `ban_max_failures` failed logins (wrong password or unknown user) within `ban_find_minutes` minutes is banned for `ban_minutes` minutes, or until the add-on restarts (the default). A banned address gets "403 Forbidden" without a password check, so it cannot keep guessing; tunnels that are already open stay open. Requests without credentials do not count. Bans are cleared when the add-on restarts.
 
-**Note**: _If you lock yourself out, wait until the ban expires or restart the add-on._
+**Note**: _If you lock yourself out, restart the add-on (for example from the Home Assistant app), or wait until the ban expires when `ban_minutes` is set._
 
 ### Option: `ban_max_failures`
 Failed logins before a ban (1–100, default 5).
@@ -86,7 +86,7 @@ Failed logins before a ban (1–100, default 5).
 Failed logins only count within this many minutes (1–1440, default 10).
 
 ### Option: `ban_minutes`
-Ban duration in minutes (1–10080, default 60).
+Ban duration in minutes (0–10080). `0` (default) bans until the add-on restarts.
 
 ### Option: `ban_notify`
 When `true`, every ban also shows a persistent notification in Home Assistant. Bans always appear in the add-on log.

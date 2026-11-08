@@ -59,8 +59,8 @@ configuration:
   ban_minutes:
     name: Ban duration (minutes)
     description: >-
-      How long a banned IP address is refused. Bans are cleared when the
-      add-on restarts.
+      How long a banned IP address is refused. 0 (default) = until the add-on
+      restarts; all bans are cleared on restart.
   ban_notify:
     name: Notify Home Assistant
     description: Show a persistent notification in Home Assistant for each ban.

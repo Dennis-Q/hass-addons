@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.1
+
+Co-authored with [Claude Code](https://claude.com/claude-code) (Anthropic).
+
+- `ban_minutes: 0` bans an IP address until the add-on restarts, and is the
+  new default (was 60 minutes). If you saved the add-on options before, your
+  saved value stays; set it to 0 to use the new default.
+
 ## 1.4.0
 
 Co-authored with [Claude Code](https://claude.com/claude-code) (Anthropic).

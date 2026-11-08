@@ -1,6 +1,6 @@
 ---
 name: httpd-proxytunnel
-version: 1.4.0
+version: 1.4.1
 slug: httpd-proxytunnel
 description: Run HTTP(S) proxytunnel addon as part of home assistant
 url: https://github.com/Dennis-Q/hass-addons/tree/main/httpd-proxytunnel
@@ -28,7 +28,7 @@ options:
   ban_enabled: true
   ban_max_failures: 5
   ban_find_minutes: 10
-  ban_minutes: 60
+  ban_minutes: 0
   ban_notify: false
 schema:
   use_own_ssl_cert: bool
@@ -43,7 +43,7 @@ schema:
   ban_enabled: bool
   ban_max_failures: int(1,100)
   ban_find_minutes: int(1,1440)
-  ban_minutes: int(1,10080)
+  ban_minutes: int(0,10080)
   ban_notify: bool
 ports:
   443/tcp: 443
