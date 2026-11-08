@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.3.1
+
+Co-authored with [Claude Code](https://claude.com/claude-code) (Anthropic).
+
+- The self-signed certificate is now a proper server certificate (not a CA
+  certificate) for `homeassistant.local`. A self-signed certificate created
+  by an older version is replaced once, so its fingerprint changes once more.
+  Fixes the Apache warnings AH01906 and AH01909.
+- Apache's server name is taken from the certificate (also with your own
+  certificate), so the name check matches.
+- Minimal Apache configuration: only the 14 modules the proxy needs are
+  loaded (was 38, incl. load balancer, AJP, FastCGI, server-status and
+  autoindex); the stock config files are no longer included.
+
 ## 1.3.0
 
 Co-authored with [Claude Code](https://claude.com/claude-code) (Anthropic).
