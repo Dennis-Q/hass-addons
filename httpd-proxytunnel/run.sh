@@ -1,121 +1,190 @@
-#!/usr/bin/with-contenv bashio
+#!/command/with-contenv bashio
+# shellcheck shell=bash
+# ==============================================================================
+# httpd-proxytunnel: validate the options, prepare certificate and credentials,
+# generate the virtual host and start Apache in the foreground.
+# ==============================================================================
 
-use_own_ssl_cert=$(bashio::config 'use_own_ssl_cert')
-certfile=$(bashio::config 'certfile')
-keyfile=$(bashio::config 'keyfile')
-enable_basic_auth=$(bashio::config 'enable_basic_auth')
-auth_username=$(bashio::config 'auth_username')
-auth_password=$(bashio::config 'auth_password')
-enable_limit_connect=$(bashio::config 'enable_limit_connect')
-limit_allowconnect_port=$(bashio::config 'limit_allowconnect_port')
-limit_connect_host=$(bashio::config 'limit_connect_host')
+readonly VHOST_CONF="/etc/apache2/conf.d/20-proxy-vhost.conf"
+readonly HTPASSWD="/etc/apache2/.htpasswd"
+readonly SELF_SIGNED_DIR="/data/ssl"
 
-if bashio::config.has_value 'init_commands'; then
-	echo "Detected custom init commands. Running them now."
-	while read -r cmd; do
-		eval "${cmd}" ||
-			bashio::exit.nok "Failed executing init command: ${cmd}"
-	done <<<"$(bashio::config 'init_commands')"
+readonly PORTS_REGEX='^[0-9]+(-[0-9]+)?([[:space:]]+[0-9]+(-[0-9]+)?)*$'
+readonly HOST_REGEX='^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$'
+readonly USERNAME_REGEX='^[^:[:space:]]+$'
+readonly SSL_PATH_REGEX='^/ssl/[^"[:space:]]+$'
+
+###########
+# Options #
+###########
+
+limit_ports=""
+limit_host=""
+
+if bashio::config.true 'enable_limit_connect'; then
+    limit_ports=$(bashio::config 'limit_allowconnect_port')
+    limit_host=$(bashio::config 'limit_connect_host')
+    [[ "${limit_ports}" == "null" ]] && limit_ports=""
+    [[ "${limit_host}" == "null" ]] && limit_host=""
+
+    if [[ -z "${limit_ports}" && -z "${limit_host}" ]]; then
+        bashio::exit.nok "enable_limit_connect is enabled, but limit_allowconnect_port and limit_connect_host are both empty."
+    fi
+    if [[ -n "${limit_ports}" && ! "${limit_ports}" =~ ${PORTS_REGEX} ]]; then
+        bashio::exit.nok "limit_allowconnect_port '${limit_ports}' is invalid. Use e.g. '22' or '22 2200-2210'."
+    fi
+    if [[ -n "${limit_host}" && ! "${limit_host}" =~ ${HOST_REGEX} ]]; then
+        bashio::exit.nok "limit_connect_host '${limit_host}' is invalid. Use an IPv4 address or a host name."
+    fi
 fi
 
+if bashio::config.false 'enable_basic_auth' && [[ -z "${limit_host}" ]]; then
+    bashio::exit.nok "enable_basic_auth is disabled without limit_connect_host: that would be an open proxy. Enable authentication or limit the proxy to one host."
+fi
 
 ###################
 # SSL certificate #
 ###################
 
-if [ $use_own_ssl_cert = "true" ]; then
-    echo "INFO: Using provided SSL-cert instead of self-signed."
-    if [ ! -f ${certfile} ]; then
-        echo "ERROR: Provided certfile '${certfile}' does not exist."
-        exit 2
-    fi
-    if [ ! -f ${keyfile} ]; then
-        echo "ERROR: Provided keyfile '${keyfile}' does not exist."
-        exit 3
-    fi
+if bashio::config.true 'use_own_ssl_cert'; then
+    certfile=$(bashio::config 'certfile')
+    keyfile=$(bashio::config 'keyfile')
+    for file in "${certfile}" "${keyfile}"; do
+        if [[ ! "${file}" =~ ${SSL_PATH_REGEX} ]]; then
+            bashio::exit.nok "'${file}' is invalid: certfile and keyfile must be stored in /ssl/ (no spaces or quotes)."
+        fi
+        if [[ ! -r "${file}" ]]; then
+            bashio::exit.nok "'${file}' does not exist or is not readable."
+        fi
+    done
+    bashio::log.info "Using the provided SSL certificate '${certfile}'."
 else
-    echo "INFO: use_own_ssl_cert is set to false, generating self-sign SSL certificate."
-    openssl req -new -newkey rsa:4096 -days 3650 -nodes -x509 -subj "/C=NL/CN=httpd-proxytunnel.homeassistant.local" -keyout /etc/ssl/private/server.key -out /etc/ssl/certs/server.crt
-    certfile="/etc/ssl/certs/server.crt"
-    keyfile="/etc/ssl/private/server.key"
-fi
+    certfile="${SELF_SIGNED_DIR}/server.crt"
+    keyfile="${SELF_SIGNED_DIR}/server.key"
 
-# replace certificate file/key with the right locations
-sed -i \
-    -e "s:REPLACE_ME_CERTIFICATE:${certfile}:g" \
-    -e "s:REPLACE_ME_KEYFILE:${keyfile}:g" \
-    /etc/apache2/conf.d/10-proxy-connect.conf
-
-#################
-# Limit Connect #
-#################
-
-if [ ${enable_limit_connect} = "true" ]; then
-    if [ -z ${limit_allowconnect_port} ] && [ -z ${limit_connect_host} ]; then
-        echo "ERROR: enable_limit_connect is enabled but limit_allowconnect_port and limit_connect_host are not configured."
-        exit 4
-    fi
-
-    if [ ! -z ${limit_allowconnect_port} ]; then
-        echo "INFO: Setting AllowConnect to '${limit_allowconnect_port}' in httpd configuration file."
-        sed -i \
-            -e "s:#\(AllowConnect REPLACE_ME_ALLOWCONNECT_PORT\):\1:" \
-            -e "s:REPLACE_ME_ALLOWCONNECT_PORT:${limit_allowconnect_port}:" \
-            /etc/apache2/conf.d/10-proxy-connect.conf
-    fi
-
-    if [ ! -z ${limit_connect_host} ]; then
-        echo "INFO: Limiting Proxy to host '${limit_connect_host}'"
-        sed -i \
-            -e "s:#\(<Proxy REPLACE_ME_CONNECT_HOST>\):\1:" \
-            -e "s:#\(Require all granted\):\1:" \
-            -e "s:#\(</Proxy>\):\1:" \
-            -e "s:REPLACE_ME_CONNECT_HOST:${limit_connect_host}:" \
-            /etc/apache2/conf.d/10-proxy-connect.conf
-    fi
-
-
-else
-    echo "INFO: enable_limit_connect set to false, using default HTTPD AllowConnect and no host limitation"
-    limit_allowconnect_port=""
-    limit_connect_host=""
-fi
-
-########################
-# Authentication stuff #
-########################
-    
-
-if [ ${enable_basic_auth} = "true" ]; then
-    if [ -z ${auth_username} ] || [ -z ${auth_password} ]; then
-        echo "ERROR: auth_username and auth_password need to be filled when enable_basic_auth is set to true. Please enter this information or disable enable_basic_auth."
-        exit 1
-    fi
-    echo "INFO: Adding password to htaccess file for user '${auth_username}'"
-    echo "${auth_password}" | htpasswd -i -c /etc/apache2/.htpasswd ${auth_username}
-
-    sed -i \
-        -e "s:#\(Authtype Basic\):\1:" \
-        -e "s:#\(Authname \"Password Required\"\):\1:" \
-        -e "s:#\(AuthUserFile /etc/apache2/.htpasswd\):\1:" \
-        /etc/apache2/conf.d/10-proxy-connect.conf
-
-    if [ ! -z ${limit_connect_host} ]; then
-        sed -i \
-            -e "s:Require all granted:Require valid-user:g" \
-            /etc/apache2/conf.d/10-proxy-connect.conf
+    # Keep the certificate (and its fingerprint) until it expires or is unusable
+    if [[ -s "${certfile}" && -s "${keyfile}" ]] \
+        && openssl x509 -checkend 0 -noout -in "${certfile}" > /dev/null 2>&1 \
+        && [[ "$(openssl x509 -noout -pubkey -in "${certfile}" 2> /dev/null)" \
+            == "$(openssl pkey -pubout -in "${keyfile}" 2> /dev/null)" ]]; then
+        bashio::log.info "Using the existing self-signed certificate."
     else
-        sed -i \
-            -e "s:#\(Require valid-user\):\1:" \
-            /etc/apache2/conf.d/10-proxy-connect.conf
+        bashio::log.info "Generating a new self-signed certificate (valid for 10 years)."
+        mkdir -p "${SELF_SIGNED_DIR}"
+        chmod 700 "${SELF_SIGNED_DIR}"
+        (umask 077 && openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
+            -subj "/CN=httpd-proxytunnel.homeassistant.local" \
+            -keyout "${keyfile}" -out "${certfile}" > /dev/null 2>&1) \
+            || bashio::exit.nok "Generating the self-signed certificate failed."
     fi
-else
-    echo "INFO: enable_basic_auth set to false, authentication disabled."
-    sed -i \
-        -e "s:Require all denied:Require all granted:g" \
-        /etc/apache2/conf.d/10-proxy-connect.conf
 fi
 
-# start apache in foreground
-echo "INFO: Starting Apache2 - This is the last message in the log. If no error occured your httpd-proxytunnel should work."
+bashio::log.info "Certificate valid until $(openssl x509 -noout -enddate -in "${certfile}" | cut -d= -f2)."
+bashio::log.info "Certificate $(openssl x509 -noout -fingerprint -sha256 -in "${certfile}")"
+
+##################
+# Authentication #
+##################
+
+auth_config=""
+require_client="Require all granted"
+
+if bashio::config.true 'enable_basic_auth'; then
+    auth_username=$(bashio::config 'auth_username')
+    if ! bashio::config.has_value 'auth_username' || ! bashio::config.has_value 'auth_password'; then
+        bashio::exit.nok "auth_username and auth_password are required when enable_basic_auth is enabled."
+    fi
+    if [[ ! "${auth_username}" =~ ${USERNAME_REGEX} ]]; then
+        bashio::exit.nok "auth_username may not contain spaces or ':'."
+    fi
+    bashio::config.suggest.safe_password 'auth_password'
+
+    printf '%s\n' "$(bashio::config 'auth_password')" \
+        | htpasswd -B -i -c "${HTPASSWD}" "${auth_username}" > /dev/null 2>&1 \
+        || bashio::exit.nok "Creating the password file failed."
+    chown root:apache "${HTPASSWD}"
+    chmod 640 "${HTPASSWD}"
+    bashio::log.info "Basic authentication enabled for user '${auth_username}'."
+
+    auth_config="AuthType Basic
+        AuthName \"Password Required\"
+        AuthBasicProvider file
+        AuthUserFile ${HTPASSWD}"
+    require_client="Require valid-user"
+else
+    bashio::log.warning "Basic authentication is disabled; anyone can connect to '${limit_host}'."
+fi
+
+#########
+# Proxy #
+#########
+
+require_method="Require method CONNECT"
+if bashio::config.true 'allow_http_proxy'; then
+    require_method=""
+    bashio::log.warning "allow_http_proxy is enabled: plain HTTP proxy requests are allowed as well as CONNECT."
+fi
+
+allow_connect="# AllowCONNECT: default ports (443 563)"
+if [[ -n "${limit_ports}" ]]; then
+    allow_connect="AllowCONNECT ${limit_ports}"
+    bashio::log.info "CONNECT limited to port(s) '${limit_ports}'."
+fi
+
+access_rules="
+        ${auth_config}
+        <RequireAll>
+            ${require_client}
+            ${require_method}
+        </RequireAll>"
+
+if [[ -n "${limit_host}" ]]; then
+    bashio::log.info "Proxy limited to host '${limit_host}'."
+    # <Proxy host> is a prefix match (10.0.0.1 would also match 10.0.0.10),
+    # so match the exact host, with an optional port and path.
+    proxy_sections="
+    <Proxy *>
+        Require all denied
+    </Proxy>
+
+    <ProxyMatch \"^(https?://)?${limit_host//./\\.}(:[0-9]+)?(/.*)?\$\">${access_rules}
+    </ProxyMatch>"
+else
+    proxy_sections="
+    <Proxy *>${access_rules}
+    </Proxy>"
+fi
+
+cat > "${VHOST_CONF}" << EOF
+# Generated by run.sh at add-on start; changes are lost on restart.
+<VirtualHost _default_:443>
+    ServerName homeassistant.local:443
+    DocumentRoot "/var/www/localhost/htdocs"
+
+    ErrorLog /proc/self/fd/2
+    CustomLog /proc/self/fd/1 "%t %h %u %{SSL_PROTOCOL}x \"%r\" %>s %b"
+
+    SSLEngine on
+    SSLCertificateFile "${certfile}"
+    SSLCertificateKeyFile "${keyfile}"
+
+    <Directory />
+        Require all denied
+        Options None
+        AllowOverride None
+    </Directory>
+
+    ProxyRequests On
+    ProxyVia Off
+    ${allow_connect}
+${proxy_sections}
+</VirtualHost>
+EOF
+
+httpd -t > /dev/null 2>&1 || {
+    httpd -t
+    bashio::exit.nok "The generated Apache configuration is invalid."
+}
+
+bashio::log.info "Starting Apache2."
 exec /usr/sbin/httpd -D FOREGROUND

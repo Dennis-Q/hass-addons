@@ -12,7 +12,7 @@ Just add my repo to the hassio addons repositorys: https://github.com/Dennis-Q/h
 ## Add-On List
 
 ### httpd-proxytunnel
-Apache2 configured for use with proxytunnel over HTTPS: https://github.com/Dennis-Q/hass-addons/tree/master/httpd-proxytunnel
+Apache2 configured for use with proxytunnel over HTTPS: https://github.com/Dennis-Q/hass-addons/tree/main/httpd-proxytunnel
 
 [Documentation can be found here][documentation]
 
