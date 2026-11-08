@@ -2,9 +2,8 @@ ARG BUILD_FROM=ghcr.io/hassio-addons/base:21.0.10
 # hadolint ignore=DL3006
 FROM ${BUILD_FROM}
 
-# Apache with SSL and proxy modules. The stock ssl.conf is replaced by our own
-# config (rootfs), the default document root is denied, the plain HTTP
-# listener is off and the global logs go to the add-on log instead of files.
+# Apache with SSL and proxy modules. The stock configuration (all modules,
+# server-status, userdir, ...) is replaced by the minimal one in rootfs.
 # hadolint ignore=DL3018
 RUN apk add --no-cache \
         apache2 \
@@ -13,15 +12,9 @@ RUN apk add --no-cache \
         apache2-utils \
         openssl \
     && mkdir -p /run/apache2 \
-    && mv /etc/apache2/conf.d/ssl.conf /etc/apache2/conf.d/ssl.conf.original \
-    && sed -i \
-        -e 's/Require all granted/Require all denied/g' \
-        -e 's/^Listen 80$/#Listen 80/' \
-        -e 's#^ErrorLog .*#ErrorLog /proc/self/fd/2#' \
-        -e 's#^\(\s*CustomLog logs/access.log\)#\#\1#' \
-        /etc/apache2/httpd.conf
+    && rm -f /etc/apache2/conf.d/*.conf
 
-# s6-overlay services (init-httpd, httpd) and the static Apache config
+# s6-overlay services (init-httpd, httpd) and the Apache configuration
 COPY rootfs /
 
 # Build arguments
